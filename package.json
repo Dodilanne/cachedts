@@ -1,15 +1,15 @@
 {
-  "name": "tscache",
+  "name": "cachedts",
   "description": "Simple transparent caching utils for TypeScript",
   "version": "0.0.1",
   "author": "Dodilanne",
   "bugs": {
-    "url": "https://github.com/dodilanne/tscache/issues"
+    "url": "https://github.com/dodilanne/cachedts/issues"
   },
-  "homepage": "https://github.com/dodilanne/tscache",
+  "homepage": "https://github.com/dodilanne/cachedts",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/dodilanne/tscache.git"
+    "url": "git+https://github.com/dodilanne/cachedts.git"
   },
   "keywords": ["javascript", "typescript", "typesafe", "caching", "cache", "proxy", "simple"],
   "license": "MIT",
