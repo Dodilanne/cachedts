@@ -37,6 +37,46 @@
         "types": "./index.d.mts",
         "import": "./index.mjs"
       }
+    },
+    "./cached": {
+      "require": {
+        "types": "./cached.d.ts",
+        "require": "./cached.js"
+      },
+      "import": {
+        "types": "./cached.d.mts",
+        "import": "./cached.mjs"
+      }
+    },
+    "./cache-key": {
+      "require": {
+        "types": "./cache-key.d.ts",
+        "require": "./cache-key.js"
+      },
+      "import": {
+        "types": "./cache-key.d.mts",
+        "import": "./cache-key.mjs"
+      }
+    },
+    "./is-cached": {
+      "require": {
+        "types": "./is-cached.d.ts",
+        "require": "./is-cached.js"
+      },
+      "import": {
+        "types": "./is-cached.d.mts",
+        "import": "./is-cached.mjs"
+      }
+    },
+    "./types": {
+      "require": {
+        "types": "./types.d.ts",
+        "require": "./types.js"
+      },
+      "import": {
+        "types": "./types.d.mts",
+        "import": "./types.mjs"
+      }
     }
   },
   "devDependencies": {
