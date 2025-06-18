@@ -1,5 +1,5 @@
 import { type GetCacheKey, defaultGetCacheKey } from "./cache-key";
-import { type AnyFunction, type Cached, cachedSymbol } from "./types";
+import { type AnyFunction, type CacheState, type Cached, cachedSymbol } from "./types";
 
 export type CacheResult = {
   value: unknown;
@@ -27,38 +27,50 @@ export type CacheOptions<TApi extends object> = {
 };
 
 export function cached<TApi extends object>(api: TApi, opts?: CacheOptions<TApi>): Cached<TApi> {
-  const cache: Cache = opts?.cache ?? new Map();
+  const definedOpts: Required<CacheOptions<TApi>> = {
+    cache: opts?.cache ?? new Map(),
+    debug: opts?.debug ?? false,
+    settings: opts?.settings ?? {},
+    overrides: opts?.overrides ?? {},
+    getCacheKey: opts?.getCacheKey ?? defaultGetCacheKey,
+  };
+
+  const state: CacheState<TApi> = {
+    ...definedOpts,
+    origApi: api,
+  };
+
   return new Proxy(api, {
     get(target, p, receiver) {
       if (p === cachedSymbol) {
-        return true;
+        return state;
       }
 
       const value = target[p as keyof typeof target];
 
-      const settings: CacheSettings = opts?.overrides?.[p as keyof TApi] ?? opts?.settings ?? {};
+      const settings = definedOpts.overrides[p as keyof TApi] ?? definedOpts.settings;
 
       if (!(value instanceof Function)) {
         return Reflect.get(target, p, receiver);
       }
 
       if (settings.enabled === false) {
-        if (opts?.debug) {
+        if (definedOpts.debug) {
           console.log("[cache disabled]", p);
         }
         return Reflect.get(target, p, receiver);
       }
 
       return function (this: typeof receiver, ...args: unknown[]) {
-        const cacheKey = opts?.getCacheKey?.(p, args) ?? defaultGetCacheKey(args);
-        const existing = cache.get(value as AnyFunction)?.get(cacheKey);
+        const cacheKey = definedOpts.getCacheKey(p, args) ?? defaultGetCacheKey(p, args);
+        const existing = definedOpts.cache.get(value as AnyFunction)?.get(cacheKey);
         if (existing && !isExpired(existing, settings)) {
-          if (opts?.debug) {
+          if (definedOpts.debug) {
             console.log("[cache hit]", p, cacheKey);
           }
           return existing.value;
         }
-        if (opts?.debug) {
+        if (definedOpts.debug) {
           console.log("[cache miss]", p, cacheKey);
         }
         const res = value.apply(this === receiver ? target : this, args);
@@ -66,11 +78,11 @@ export function cached<TApi extends object>(api: TApi, opts?: CacheOptions<TApi>
           value: res,
           cachedAt: Date.now(),
         };
-        const fctCache = cache.get(value as AnyFunction);
+        const fctCache = definedOpts.cache.get(value as AnyFunction);
         if (fctCache) {
           fctCache.set(cacheKey, cacheRes);
         } else {
-          cache.set(value as AnyFunction, new Map([[cacheKey, cacheRes]]));
+          definedOpts.cache.set(value as AnyFunction, new Map([[cacheKey, cacheRes]]));
         }
         return res;
       };
