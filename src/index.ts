@@ -9,4 +9,4 @@ export {
 } from "./cached";
 export { invalidate } from "./invalidate";
 export { isCached } from "./is-cached";
-export { cachedSymbol, type Cached, type AnyFunction } from "./types";
+export { cachedSymbol, type Cached, type AnyFunction, type CacheState } from "./types";
