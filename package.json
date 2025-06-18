@@ -1,7 +1,7 @@
 {
   "name": "cachedts",
   "description": "Simple transparent caching utils for TypeScript",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": "Dodilanne",
   "bugs": {
     "url": "https://github.com/dodilanne/cachedts/issues"
