@@ -48,6 +48,16 @@
         "import": "./cached.mjs"
       }
     },
+    "./invalidate": {
+      "require": {
+        "types": "./invalidate.d.ts",
+        "require": "./invalidate.js"
+      },
+      "import": {
+        "types": "./invalidate.d.mts",
+        "import": "./invalidate.mjs"
+      }
+    },
     "./cache-key": {
       "require": {
         "types": "./cache-key.d.ts",
