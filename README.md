@@ -1,23 +1,24 @@
-# 🔄 `cachedts` – Simple Function-Level Caching for TypeScript APIs
+# `cachedts` – Simple Function-Level Caching for TypeScript APIs
 
-`cachedts` is a lightweight utility for function-level memoization of object methods in TypeScript. It wraps an object and automatically caches the results of its functions based on input arguments.
+`cachedts` is a lightweight utility for function-level memoization of object methods in TypeScript.
+It wraps an object and automatically caches the results of its functions based on input arguments.
 
 Perfect for avoiding repeated computations, expensive API calls, or just improving performance with minimal setup.
 
 ---
 
-## ✨ Features
+## Features
 
-- ⚡ Zero-dependency
-- 🧠 Memoizes function results by arguments
-- ⏱️ Optional TTL-based expiration
-- 🛠️ Per-function or global settings
-- 🧪 Debug logging
-- 🔑 Custom cache key generation
+- Zero-dependency
+- Memoizes function results by arguments
+- Optional TTL-based expiration
+- Per-function or global settings
+- Debug logging
+- Custom cache key generation
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ```ts
 import { cached } from "cachedts";
@@ -37,7 +38,7 @@ cachedMath.slowSquare(5); // returns 25 instantly (from cache)
 
 ---
 
-## ⚙️ Options
+## Options
 
 ```ts
 const cachedApi = cached(apiObject, {
@@ -66,7 +67,7 @@ const cachedApi = cached(apiObject, {
 
 ---
 
-## 🧪 Example with TTL
+## Example with TTL
 
 ```ts
 const api = {
@@ -91,7 +92,40 @@ setTimeout(() => {
 
 ---
 
-## 🧩 Advanced Usage: Custom Cache Key
+## Cache Invalidation
+
+You can clear cached results using the `invalidate` function. It allows three levels of granularity:
+
+### Invalidate the entire cache
+
+```ts
+import { invalidate } from "cachedts";
+
+invalidate(cachedApi); // Clears all cached entries for all methods
+```
+
+### Invalidate a specific method's cache
+
+```ts
+invalidate(cachedApi, "getParams"); // Clears all cache entries for `getParams`
+```
+
+### Invalidate a specific method call with given arguments
+
+```ts
+invalidate(cachedApi, "getParams", "user123", 42); // Clears cache entry for `getParams("user123", 42)`
+```
+
+This is useful when the underlying data changes and a fresh fetch is needed for specific arguments.
+
+### Notes
+
+- No effect is applied if the method is not a function or has no cached entries.
+- Cache key computation uses the same mechanism as the one used by `cached()`, including custom `getCacheKey` if provided.
+
+---
+
+## Advanced Usage: Custom Cache Key
 
 By default, cache keys are generated based on the function name and serialized arguments.
 
@@ -109,7 +143,7 @@ const cachedApi = cached(api, {
 
 ---
 
-## 🔍 Accessing Cache Internals
+## Accessing Cache Internals
 
 You can introspect the wrapped object via the `cachedSymbol`:
 
@@ -122,9 +156,9 @@ console.log(state.cache); // underlying Map
 
 ---
 
-## 🧼 Disabling Caching
+## Disabling Caching
 
-Disable globally tr per-method:
+Disable globally or per-method:
 
 ```ts
 cached(api, {
@@ -137,30 +171,14 @@ cached(api, {
 
 ---
 
-## 📦 Installation
-
-If you haven’t yet:
+## Installation
 
 ```bash
-npm install your-caching-lib
-```
-
-Or if you're using it locally:
-
-```ts
-import { cached } from "./cached";
+npm install cachedts
 ```
 
 ---
 
-## 📁 Project Structure Overview
-
-- `cached.ts` – core proxy logic
-- `types.ts` – shared types
-- `cache-key.ts` – default key generation logic
-
----
-
-## 📝 License
+## License
 
 MIT
