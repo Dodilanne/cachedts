@@ -1,5 +1,5 @@
-import { type GetCacheKey, defaultGetCacheKey } from "./cache-key";
-import { type AnyFunction, type CacheState, type Cached, cachedSymbol } from "./types";
+import { defaultGetCacheKey, type GetCacheKey } from "./cache-key";
+import { type AnyFunction, type Cached, type CacheState, cachedSymbol } from "./types";
 
 export type CacheResult = {
   value: unknown;
@@ -19,7 +19,13 @@ export type CacheOptions<TApi extends object> = {
   cache?: Cache;
   debug?: boolean;
   settings?: CacheSettings;
-  overrides?: Partial<Record<keyof TApi, CacheSettings>>;
+  overrides?: {
+    [fnName in keyof TApi]?: CacheSettings & {
+      getCacheKey?: TApi[fnName] extends AnyFunction
+        ? (...args: Parameters<TApi[fnName]>) => string | symbol | undefined
+        : never;
+    };
+  };
   /** Customize the default cache key computation.
    * Falls back to the default behavior when `undefined` is returned.
    */
@@ -48,7 +54,9 @@ export function cached<TApi extends object>(api: TApi, opts?: CacheOptions<TApi>
 
       const value = target[p as keyof typeof target];
 
-      const settings = definedOpts.overrides[p as keyof TApi] ?? definedOpts.settings;
+      const overrides = definedOpts.overrides[p as keyof TApi];
+
+      const settings = overrides ?? definedOpts.settings;
 
       if (!(value instanceof Function)) {
         return Reflect.get(target, p, receiver);
@@ -62,7 +70,11 @@ export function cached<TApi extends object>(api: TApi, opts?: CacheOptions<TApi>
       }
 
       return function (this: typeof receiver, ...args: unknown[]) {
-        const cacheKey = definedOpts.getCacheKey(p, args) ?? defaultGetCacheKey(p, args);
+        const cacheKey =
+          // biome-ignore lint/suspicious/noExplicitAny: Args are unknown
+          overrides?.getCacheKey?.(...(args as any)) ??
+          definedOpts.getCacheKey(p, args) ??
+          defaultGetCacheKey(p, args);
         const existing = definedOpts.cache.get(value as AnyFunction)?.get(cacheKey);
         if (existing && !isExpired(existing, settings)) {
           if (definedOpts.debug) {

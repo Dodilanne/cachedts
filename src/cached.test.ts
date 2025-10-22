@@ -228,3 +228,54 @@ test("caching with ttl override", async () => {
     vi.useRealTimers();
   })();
 });
+
+test("caching with per-function getCacheKey override", async () => {
+  const cachedApi = cached(
+    {
+      a: vi.fn(async (id: number, _opts: { includeDetails?: boolean }) => {
+        return { id, name: `User ${id}` };
+      }),
+      b: vi.fn(async (id: number, title: string) => {
+        return { id, title };
+      }),
+    },
+    { overrides: { a: { getCacheKey: (id) => `user-${id}` } } },
+  );
+
+  await cachedApi.a(1, { includeDetails: true });
+  const aCache = cachedApi[cachedSymbol].cache.get(cachedApi[cachedSymbol].origApi.a);
+  expect(aCache?.size).toBe(1);
+  expect(aCache?.has("user-1")).toBe(true);
+
+  await cachedApi.b(1, "the-title");
+  const bCache = cachedApi[cachedSymbol].cache.get(cachedApi[cachedSymbol].origApi.b);
+  expect(bCache?.size).toBe(1);
+  expect(bCache?.has("1-the-title")).toBe(true);
+});
+
+test("caching with per-function getCacheKey override and global getCacheKey", async () => {
+  const cachedApi = cached(
+    {
+      a: vi.fn(async (id: number, _opts: { includeDetails?: boolean }) => {
+        return { id, name: `User ${id}` };
+      }),
+      b: vi.fn(async (id: number, title: string) => {
+        return { id, title };
+      }),
+    },
+    {
+      getCacheKey: (fnName, args) => `${String(fnName)}-${args[0]}`,
+      overrides: { a: { getCacheKey: (id) => `user-${id}` } },
+    },
+  );
+
+  await cachedApi.a(1, { includeDetails: true });
+  const aCache = cachedApi[cachedSymbol].cache.get(cachedApi[cachedSymbol].origApi.a);
+  expect(aCache?.size).toBe(1);
+  expect(aCache?.has("user-1")).toBe(true);
+
+  await cachedApi.b(1, "the-title");
+  const bCache = cachedApi[cachedSymbol].cache.get(cachedApi[cachedSymbol].origApi.b);
+  expect(bCache?.size).toBe(1);
+  expect(bCache?.has("b-1")).toBe(true);
+});
