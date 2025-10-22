@@ -11,10 +11,20 @@
     "type": "git",
     "url": "git+https://github.com/dodilanne/cachedts.git"
   },
-  "keywords": ["javascript", "typescript", "typesafe", "caching", "cache", "proxy", "simple"],
+  "keywords": [
+    "javascript",
+    "typescript",
+    "typesafe",
+    "caching",
+    "cache",
+    "proxy",
+    "simple"
+  ],
   "license": "MIT",
   "sideEffects": false,
-  "files": ["**"],
+  "files": [
+    "**"
+  ],
   "main": "./index.js",
   "module": "./index.mjs",
   "types": "./index.d.mts",
@@ -90,7 +100,7 @@
     }
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
+    "@biomejs/biome": "2.0.6",
     "@types/node": "^22.13.4",
     "tsup": "^8.3.6",
     "typescript": "^5.7.3",

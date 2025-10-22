@@ -1,12 +1,12 @@
-export { defaultGetCacheKey, defaultCacheKeySymbol, type GetCacheKey } from "./cache-key";
+export { defaultCacheKeySymbol, defaultGetCacheKey, type GetCacheKey } from "./cache-key";
 export {
-  type CacheResult,
   type Cache,
-  type Milliseconds,
-  type CacheSettings,
   type CacheOptions,
+  type CacheResult,
+  type CacheSettings,
   cached,
+  type Milliseconds,
 } from "./cached";
 export { invalidate } from "./invalidate";
 export { isCached } from "./is-cached";
-export { cachedSymbol, type Cached, type AnyFunction, type CacheState } from "./types";
+export { type AnyFunction, type Cached, type CacheState, cachedSymbol } from "./types";
