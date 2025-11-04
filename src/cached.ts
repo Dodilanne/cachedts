@@ -1,5 +1,5 @@
 import { defaultGetCacheKey, type GetCacheKey } from "./cache-key";
-import { type AnyFunction, type Cached, type CacheState, cachedSymbol } from "./types";
+import { type AnyFunction, type Cached, type CacheState, cacheStateKey } from "./types";
 
 export type CacheResult = {
   value: unknown;
@@ -48,7 +48,7 @@ export function cached<TApi extends object>(api: TApi, opts?: CacheOptions<TApi>
 
   return new Proxy(api, {
     get(target, p, receiver) {
-      if (p === cachedSymbol) {
+      if (p === cacheStateKey) {
         return state;
       }
 

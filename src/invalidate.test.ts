@@ -1,5 +1,5 @@
 import { expect, test, vi } from "vitest";
-import { cached, cachedSymbol, invalidate } from "../src";
+import { cached, cacheStateKey, invalidate } from "../src";
 
 test("invalidate the entire cache", async () => {
   const api = {
@@ -7,7 +7,7 @@ test("invalidate the entire cache", async () => {
     getParamsAsync: vi.fn(async () => ({ async: true })),
   };
   const cachedApi = cached(api);
-  expect(cachedApi[cachedSymbol]).toBeDefined();
+  expect(cachedApi[cacheStateKey]).toBeDefined();
   cachedApi.getParams();
   cachedApi.getParams();
   await Promise.all([cachedApi.getParamsAsync(), cachedApi.getParamsAsync()]);
@@ -31,7 +31,7 @@ test("invalidate a specific function", async () => {
     getParamsAsync: vi.fn(async () => ({ async: true })),
   };
   const cachedApi = cached(api);
-  expect(cachedApi[cachedSymbol]).toBeDefined();
+  expect(cachedApi[cacheStateKey]).toBeDefined();
   cachedApi.getParams();
   cachedApi.getParams();
   await Promise.all([cachedApi.getParamsAsync(), cachedApi.getParamsAsync()]);
@@ -54,7 +54,7 @@ test("invalidate a specific function with specific params", async () => {
     getParams: vi.fn((_name: string, _value: number) => ({ async: false })),
   };
   const cachedApi = cached(api);
-  expect(cachedApi[cachedSymbol]).toBeDefined();
+  expect(cachedApi[cacheStateKey]).toBeDefined();
 
   cachedApi.getParams("a", 1);
   cachedApi.getParams("a", 1);

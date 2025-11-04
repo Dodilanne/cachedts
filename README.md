@@ -145,13 +145,22 @@ const cachedApi = cached(api, {
 
 ## Accessing Cache Internals
 
-You can introspect the wrapped object via the `cachedSymbol`:
+You can introspect the wrapped object via the `cacheStateKey`:
 
 ```ts
-import { cachedSymbol } from "cachedts";
+import { cacheStateKey } from "cachedts";
 
-const state = cachedApi[cachedSymbol];
+const state = cachedApi[cacheStateKey];
 console.log(state.cache); // underlying Map
+```
+
+Or by using the `getCacheState` function:
+
+```ts
+import { getCacheState } from "cachedts";
+
+const state = getCacheState(cachedApi);
+console.log(state.cache); // nderlying Map
 ```
 
 ---

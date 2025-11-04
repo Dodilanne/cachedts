@@ -1,5 +1,5 @@
-import { type Cached, type CacheState, cachedSymbol } from "./types";
+import { type Cached, type CacheState, cacheStateKey } from "./types";
 
 export function getCacheState<TApi extends object>(cache: Cached<TApi>): CacheState<TApi> {
-  return cache[cachedSymbol];
+  return cache[cacheStateKey];
 }

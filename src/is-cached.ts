@@ -1,5 +1,5 @@
-import { type Cached, cachedSymbol } from "./types";
+import { type Cached, cacheStateKey } from "./types";
 
 export function isCached<TObj extends object>(obj: TObj): obj is Cached<TObj> {
-  return typeof obj === "object" && obj !== null && obj[cachedSymbol as keyof TObj] !== undefined;
+  return typeof obj === "object" && obj !== null && obj[cacheStateKey as keyof TObj] !== undefined;
 }

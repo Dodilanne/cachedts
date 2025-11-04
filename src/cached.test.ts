@@ -1,5 +1,5 @@
 import { expect, test, vi } from "vitest";
-import { type CacheOptions, cached, cachedSymbol } from "../src";
+import { type CacheOptions, cached, cacheStateKey } from "../src";
 
 test("simple caching", async () => {
   const api = {
@@ -9,7 +9,7 @@ test("simple caching", async () => {
     }),
   };
   const cachedApi = cached(api);
-  expect(cachedApi[cachedSymbol]).toBeDefined();
+  expect(cachedApi[cacheStateKey]).toBeDefined();
   const [first, ...results] = await Promise.all([
     cachedApi.getParamsAsync(),
     cachedApi.getParamsAsync(),
@@ -29,7 +29,7 @@ test("caching with params", async () => {
     }),
   };
   const cachedApi = cached(api);
-  expect(cachedApi[cachedSymbol]).toBeDefined();
+  expect(cachedApi[cacheStateKey]).toBeDefined();
   const results = await Promise.all([
     cachedApi.getName(1),
     cachedApi.getName(2),
@@ -52,7 +52,7 @@ test("caching with object params", async () => {
     }),
   };
   const cachedApi = cached(api);
-  expect(cachedApi[cachedSymbol]).toBeDefined();
+  expect(cachedApi[cacheStateKey]).toBeDefined();
   const results = await Promise.all([
     cachedApi.getName(1, { secret: "override" }),
     cachedApi.getName(2),
@@ -77,7 +77,7 @@ test("caching disabled", async () => {
     settings: { enabled: false },
   };
   const cachedApi = cached(api, opts);
-  expect(cachedApi[cachedSymbol]).toMatchObject(opts);
+  expect(cachedApi[cacheStateKey]).toMatchObject(opts);
   const [first, ...results] = await Promise.all([
     cachedApi.getParamsAsync(),
     cachedApi.getParamsAsync(),
@@ -103,7 +103,7 @@ test("caching with ttl", async () => {
     settings: { ttl },
   };
   const cachedApi = cached(api, opts);
-  expect(cachedApi[cachedSymbol]).toMatchObject(opts);
+  expect(cachedApi[cacheStateKey]).toMatchObject(opts);
   const [first, ...results] = await Promise.all([
     cachedApi.getParamsAsync(),
     cachedApi.getParamsAsync(),
@@ -142,7 +142,7 @@ test("caching with enabled override", async () => {
     overrides: { getCachedParams: { enabled: true } },
   };
   const cachedApi = cached(api, opts);
-  expect(cachedApi[cachedSymbol]).toMatchObject(opts);
+  expect(cachedApi[cacheStateKey]).toMatchObject(opts);
   await (async () => {
     const [first, ...results] = await Promise.all([cachedApi.getParams(), cachedApi.getParams()]);
     expect(api.getParams).toHaveBeenCalledTimes(2);
@@ -179,7 +179,7 @@ test("caching with ttl override", async () => {
     overrides: { getParams: {} },
   };
   const cachedApi = cached(api, opts);
-  expect(cachedApi[cachedSymbol]).toMatchObject(opts);
+  expect(cachedApi[cacheStateKey]).toMatchObject(opts);
   await (async () => {
     vi.useFakeTimers();
     const [first, ...results] = await Promise.all([
@@ -243,12 +243,12 @@ test("caching with per-function getCacheKey override", async () => {
   );
 
   await cachedApi.a(1, { includeDetails: true });
-  const aCache = cachedApi[cachedSymbol].cache.get(cachedApi[cachedSymbol].origApi.a);
+  const aCache = cachedApi[cacheStateKey].cache.get(cachedApi[cacheStateKey].origApi.a);
   expect(aCache?.size).toBe(1);
   expect(aCache?.has("user-1")).toBe(true);
 
   await cachedApi.b(1, "the-title");
-  const bCache = cachedApi[cachedSymbol].cache.get(cachedApi[cachedSymbol].origApi.b);
+  const bCache = cachedApi[cacheStateKey].cache.get(cachedApi[cacheStateKey].origApi.b);
   expect(bCache?.size).toBe(1);
   expect(bCache?.has("1-the-title")).toBe(true);
 });
@@ -270,12 +270,12 @@ test("caching with per-function getCacheKey override and global getCacheKey", as
   );
 
   await cachedApi.a(1, { includeDetails: true });
-  const aCache = cachedApi[cachedSymbol].cache.get(cachedApi[cachedSymbol].origApi.a);
+  const aCache = cachedApi[cacheStateKey].cache.get(cachedApi[cacheStateKey].origApi.a);
   expect(aCache?.size).toBe(1);
   expect(aCache?.has("user-1")).toBe(true);
 
   await cachedApi.b(1, "the-title");
-  const bCache = cachedApi[cachedSymbol].cache.get(cachedApi[cachedSymbol].origApi.b);
+  const bCache = cachedApi[cacheStateKey].cache.get(cachedApi[cacheStateKey].origApi.b);
   expect(bCache?.size).toBe(1);
   expect(bCache?.has("b-1")).toBe(true);
 });

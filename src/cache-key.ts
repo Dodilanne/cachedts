@@ -1,4 +1,4 @@
-export const defaultCacheKeySymbol = Symbol("default");
+export const defaultCacheKey = "__CACHEDTS__default_cache_key";
 
 export type GetCacheKey = (
   fnName: string | number | symbol,
@@ -11,7 +11,7 @@ export const defaultGetCacheKey = ((
   args: unknown[],
 ): string | symbol => {
   if (args.length === 0) {
-    return defaultCacheKeySymbol;
+    return defaultCacheKey;
   }
   return args
     .map((arg) => {

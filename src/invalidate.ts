@@ -1,5 +1,5 @@
 import { defaultGetCacheKey } from "./cache-key";
-import { type AnyFunction, type Cached, cachedSymbol } from "./types";
+import { type AnyFunction, type Cached, cacheStateKey } from "./types";
 
 export function invalidate<TApi extends object>(api: Cached<TApi>): void;
 export function invalidate<TApi extends object, TKey extends keyof TApi>(
@@ -18,7 +18,7 @@ export function invalidate<TApi extends object, TKey extends keyof TApi>(
   // biome-ignore lint/suspicious/noExplicitAny: We don't care about the return value
   ...args: TApi[TKey] extends (...args: infer TArgs) => any ? TArgs : never
 ): void {
-  const state = api[cachedSymbol];
+  const state = api[cacheStateKey];
 
   if (typeof key === "undefined") {
     state.cache.clear();
