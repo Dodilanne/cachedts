@@ -13,6 +13,7 @@ export type Milliseconds = number;
 export type CacheSettings = {
   enabled?: boolean;
   ttl?: Milliseconds;
+  maxSize?: number;
 };
 
 export type CacheOptions<TApi extends object> = {
@@ -75,28 +76,43 @@ export function cached<TApi extends object>(api: TApi, opts?: CacheOptions<TApi>
           overrides?.getCacheKey?.(...(args as any)) ??
           definedOpts.getCacheKey(p, args) ??
           defaultGetCacheKey(p, args);
-        const existing = definedOpts.cache.get(value as AnyFunction)?.get(cacheKey);
-        if (existing && !isExpired(existing, settings)) {
-          if (definedOpts.debug) {
-            console.log("[cache hit]", p, cacheKey);
-          }
-          return existing.value;
+
+        let fnCache = definedOpts.cache.get(value as AnyFunction);
+        if (!fnCache) {
+          fnCache = new Map();
+          definedOpts.cache.set(value as AnyFunction, fnCache);
         }
+
+        let status: "hit" | "miss" | "expired" = "hit";
+
+        let cacheRes = fnCache?.get(cacheKey);
+        if (!cacheRes || isExpired(cacheRes, settings)) {
+          status = cacheRes ? "expired" : "miss";
+          const res = value.apply(this === receiver ? target : this, args);
+          cacheRes = { value: res, cachedAt: Date.now() };
+        }
+
         if (definedOpts.debug) {
-          console.log("[cache miss]", p, cacheKey);
+          console.log(`[cache ${status}]`, p, cacheKey);
         }
-        const res = value.apply(this === receiver ? target : this, args);
-        const cacheRes: CacheResult = {
-          value: res,
-          cachedAt: Date.now(),
-        };
-        const fctCache = definedOpts.cache.get(value as AnyFunction);
-        if (fctCache) {
-          fctCache.set(cacheKey, cacheRes);
-        } else {
-          definedOpts.cache.set(value as AnyFunction, new Map([[cacheKey, cacheRes]]));
+
+        // No need to reorder the cache if we're not evicting least recently used items
+        if (status === "hit" && typeof settings.maxSize !== "number") {
+          return cacheRes.value;
         }
-        return res;
+
+        // Reorder the cache to keep the least recently used items at the front
+        fnCache.delete(cacheKey);
+        fnCache.set(cacheKey, cacheRes);
+
+        if (typeof settings.maxSize === "number") {
+          while (fnCache.size > settings.maxSize) {
+            const oldest = fnCache.keys().next().value;
+            if (oldest !== undefined) fnCache.delete(oldest);
+          }
+        }
+
+        return cacheRes.value;
       };
     },
   }) as Cached<TApi>;
