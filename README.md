@@ -112,6 +112,37 @@ cachedApi.greet("Eve");   // cached, "Alice" evicted (least recently used)
 
 ---
 
+## Pruning Expired Entries
+
+Expired cache entries are normally removed lazily on access. For more aggressive cleanup, use `prune()` to sweep all expired entries at once, or enable `pruneOnAccess` to sweep a function's cache whenever it is called.
+
+### Manual pruning
+
+```ts
+import { cached, prune } from "cachedts";
+
+const cachedApi = cached(api, { settings: { ttl: 5000 } });
+
+// Remove all expired entries across all functions
+prune(cachedApi);
+```
+
+### Automatic pruning on access
+
+```ts
+const cachedApi = cached(api, {
+  settings: { ttl: 5000, pruneOnAccess: true },
+});
+
+// Calling any cached function will first sweep expired entries
+// from that function's cache
+cachedApi.getData("key");
+```
+
+`pruneOnAccess` only sweeps the cache of the function being called, not all functions. Both options respect per-function TTL overrides.
+
+---
+
 ## Cache Invalidation
 
 You can clear cached results using the `invalidate` function. It allows three levels of granularity:
