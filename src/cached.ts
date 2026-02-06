@@ -8,11 +8,11 @@ export type CacheResult = {
 
 export type Cache = Map<AnyFunction, Map<string | symbol, CacheResult>>;
 
-export type Milliseconds = number;
-
 export type CacheSettings = {
   enabled?: boolean;
-  ttl?: Milliseconds;
+  /** Time to live in milliseconds */
+  ttl?: number;
+  /** Maximum number of items to keep in the cache per function */
   maxSize?: number;
 };
 

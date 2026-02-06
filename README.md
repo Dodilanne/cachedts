@@ -12,6 +12,7 @@ Perfect for avoiding repeated computations, expensive API calls, or just improvi
 - Zero-dependency
 - Memoizes function results by arguments
 - Optional TTL-based expiration
+- LRU cache eviction with configurable `maxSize`
 - Per-function or global settings
 - Debug logging
 - Custom cache key generation
@@ -46,6 +47,7 @@ const cachedApi = cached(apiObject, {
   settings: {
     enabled: true,
     ttl: 5000, // Cache expires after 5 seconds
+    maxSize: 100, // Keep at most 100 entries per function (LRU eviction)
   },
   overrides: {
     // Per-method override
@@ -61,7 +63,7 @@ const cachedApi = cached(apiObject, {
 |---------------|---------------------------------------------|---------------------------------------------------|
 | `cache`       | `Map`                                       | Provide a shared cache instance                   |
 | `debug`       | `boolean`                                   | Enable logging for cache hits/misses              |
-| `settings`    | `{ enabled?: boolean; ttl?: number }`       | Global cache settings                             |
+| `settings`    | `{ enabled?: boolean; ttl?: number; maxSize?: number }` | Global cache settings                    |
 | `overrides`   | `Partial<Record<keyof TApi, CacheSettings>>`| Per-method cache control                          |
 | `getCacheKey` | `(methodName, args) => string \| symbol`    | Custom key generator for cache entries            |
 
@@ -89,6 +91,24 @@ setTimeout(() => {
   cachedApi.greet("Alice"); // cache expired, miss
 }, 1500);
 ```
+
+---
+
+## LRU Cache Eviction
+
+Limit the number of cached entries per function with `maxSize`. When the limit is exceeded, the least recently used entry is evicted.
+
+```ts
+const cachedApi = cached(api, {
+  settings: { maxSize: 2 },
+});
+
+cachedApi.greet("Alice"); // cached
+cachedApi.greet("Bob");   // cached
+cachedApi.greet("Eve");   // cached, "Alice" evicted (least recently used)
+```
+
+`maxSize` can be combined with `ttl` and set per-method via `overrides`.
 
 ---
 
