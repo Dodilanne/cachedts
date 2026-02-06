@@ -112,6 +112,25 @@ cachedApi.greet("Eve");   // cached, "Alice" evicted (least recently used)
 
 ---
 
+## Pruning Expired Entries
+
+When `ttl` is set, expired entries are automatically pruned from a function's cache on every cache miss. This ensures expired entries don't accumulate and, when combined with `maxSize`, prevents LRU eviction from evicting valid entries over expired ones. Cache hits do not trigger pruning.
+
+For bulk cleanup across all functions, use `prune()`:
+
+```ts
+import { cached, prune } from "cachedts";
+
+const cachedApi = cached(api, { settings: { ttl: 5000 } });
+
+// Remove all expired entries across all functions
+prune(cachedApi);
+```
+
+Pruning only sweeps the cache of the function being called, not all functions. Both automatic and manual pruning respect per-function TTL overrides.
+
+---
+
 ## Cache Invalidation
 
 You can clear cached results using the `invalidate` function. It allows three levels of granularity:

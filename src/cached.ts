@@ -1,4 +1,5 @@
 import { defaultGetCacheKey, type GetCacheKey } from "./cache-key";
+import { isExpired } from "./is-expired";
 import { type AnyFunction, type Cached, type CacheState, cacheStateKey } from "./types";
 
 export type CacheResult = {
@@ -96,21 +97,32 @@ export function cached<TApi extends object>(api: TApi, opts?: CacheOptions<TApi>
           console.log(`[cache ${status}]`, p, cacheKey);
         }
 
-        // No need to reorder the cache if we're not evicting least recently used items
-        if (status === "hit" && typeof settings.maxSize !== "number") {
-          return cacheRes.value;
-        }
-
-        if (status !== "miss") {
+        // LRU ordering
+        // Can be skipped on cache hit if LRU eviction is disabled
+        if (status !== "hit" || typeof settings.maxSize === "number") {
           fnCache.delete(cacheKey);
+          fnCache.set(cacheKey, cacheRes);
         }
 
-        fnCache.set(cacheKey, cacheRes);
+        // Prune expired entries on miss to avoid evicting valid entries over expired ones
+        if (status !== "hit" && typeof settings.ttl === "number") {
+          for (const [key, value] of fnCache.entries()) {
+            if (isExpired(value, settings)) {
+              fnCache.delete(key);
+            } else if (typeof settings.maxSize !== "number") {
+              // Without maxSize, map order matches expiration order (insertion order),
+              // so we can break early at the first non-expired entry
+              break;
+            }
+          }
+        }
 
-        if (typeof settings.maxSize === "number") {
-          while (fnCache.size > settings.maxSize) {
-            const oldest = fnCache.keys().next().value;
-            if (oldest !== undefined) fnCache.delete(oldest);
+        if (typeof settings.maxSize === "number" && fnCache.size > settings.maxSize) {
+          for (const key of fnCache.keys()) {
+            fnCache.delete(key);
+            if (fnCache.size <= settings.maxSize) {
+              break;
+            }
           }
         }
 
@@ -118,11 +130,4 @@ export function cached<TApi extends object>(api: TApi, opts?: CacheOptions<TApi>
       };
     },
   }) as Cached<TApi>;
-}
-
-function isExpired(result: CacheResult, settings: CacheSettings): boolean {
-  if (typeof settings.ttl !== "number") {
-    return false;
-  }
-  return Date.now() > result.cachedAt + settings.ttl;
 }
