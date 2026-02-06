@@ -351,6 +351,105 @@ test("caching with per-function getCacheKey override", async () => {
   expect(bCache?.has("1-the-title")).toBe(true);
 });
 
+test("pruneOnAccess sweeps expired entries from the accessed function's cache on read", () => {
+  vi.useFakeTimers();
+  const api = {
+    a: vi.fn((id: number) => `a-${id}`),
+  };
+  const ttl = 1000;
+  const cachedApi = cached(api, { settings: { ttl, pruneOnAccess: true } });
+  const state = cachedApi[cacheStateKey];
+
+  cachedApi.a(1);
+  cachedApi.a(2);
+
+  vi.advanceTimersByTime(ttl + 1);
+
+  cachedApi.a(3);
+
+  const aCache = state.cache.get(state.origApi.a);
+  expect(aCache?.has("1")).toBe(false);
+  expect(aCache?.has("2")).toBe(false);
+  expect(aCache?.has("3")).toBe(true);
+
+  vi.useRealTimers();
+});
+
+test("pruneOnAccess does not sweep other functions' caches", () => {
+  vi.useFakeTimers();
+  const api = {
+    a: vi.fn((id: number) => `a-${id}`),
+    b: vi.fn((id: number) => `b-${id}`),
+  };
+  const ttl = 1000;
+  const cachedApi = cached(api, { settings: { ttl, pruneOnAccess: true } });
+  const state = cachedApi[cacheStateKey];
+
+  cachedApi.a(1);
+  cachedApi.b(1);
+
+  vi.advanceTimersByTime(ttl + 1);
+
+  cachedApi.a(2);
+
+  const aCache = state.cache.get(state.origApi.a);
+  expect(aCache?.has("1")).toBe(false);
+  expect(aCache?.has("2")).toBe(true);
+
+  const bCache = state.cache.get(state.origApi.b);
+  expect(bCache?.has("1")).toBe(true);
+
+  vi.useRealTimers();
+});
+
+test("pruneOnAccess is a no-op when no TTL is set", () => {
+  const api = {
+    a: vi.fn((id: number) => `a-${id}`),
+  };
+  const cachedApi = cached(api, { settings: { pruneOnAccess: true } });
+  const state = cachedApi[cacheStateKey];
+
+  cachedApi.a(1);
+  cachedApi.a(2);
+  cachedApi.a(3);
+
+  const aCache = state.cache.get(state.origApi.a);
+  expect(aCache?.size).toBe(3);
+});
+
+test("pruneOnAccess with maxSize preserves non-expired entries over expired recently-used ones", () => {
+  vi.useFakeTimers();
+  const api = {
+    a: vi.fn((id: number) => `a-${id}`),
+  };
+  const ttl = 1000;
+  const cachedApi = cached(api, { settings: { ttl, maxSize: 2, pruneOnAccess: true } });
+  const state = cachedApi[cacheStateKey];
+
+  // t=0: cache a(1)
+  cachedApi.a(1);
+  // t=500: cache a(2)
+  vi.advanceTimersByTime(500);
+  cachedApi.a(2);
+  // t=999: hit a(1), refreshing its LRU position. a(1) is now more recently used than a(2)
+  vi.advanceTimersByTime(499);
+  cachedApi.a(1);
+  // t=1001: a(1) is expired (cachedAt=0), a(2) is not (cachedAt=500)
+  vi.advanceTimersByTime(2);
+
+  // a(3) triggers pruneOnAccess: a(1) pruned (expired), a(2) survives (not expired)
+  // Without pruneOnAccess, LRU would evict a(2) and keep the expired a(1)
+  cachedApi.a(3);
+
+  const aCache = state.cache.get(state.origApi.a);
+  expect(aCache?.size).toBe(2);
+  expect(aCache?.has("1")).toBe(false);
+  expect(aCache?.has("2")).toBe(true);
+  expect(aCache?.has("3")).toBe(true);
+
+  vi.useRealTimers();
+});
+
 test("caching with per-function getCacheKey override and global getCacheKey", async () => {
   const cachedApi = cached(
     {

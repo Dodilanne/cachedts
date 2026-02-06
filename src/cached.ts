@@ -99,21 +99,29 @@ export function cached<TApi extends object>(api: TApi, opts?: CacheOptions<TApi>
           console.log(`[cache ${status}]`, p, cacheKey);
         }
 
-        // No need to reorder the cache if we're not evicting least recently used items
-        if (status === "hit" && typeof settings.maxSize !== "number") {
-          return cacheRes.value;
-        }
-
-        if (status !== "miss") {
+        // LRU ordering
+        // Can be skipped on cache hit if LRU eviction is disabled
+        if (status !== "hit" || typeof settings.maxSize === "number") {
           fnCache.delete(cacheKey);
+          fnCache.set(cacheKey, cacheRes);
         }
 
-        fnCache.set(cacheKey, cacheRes);
+        // We prune before LRU eviction to give precedence to old non-expired entries over expired ones
+        // Can be skipped when no TTL is set (items never expire)
+        if (settings.pruneOnAccess && typeof settings.ttl === "number") {
+          for (const [key, value] of fnCache.entries()) {
+            if (isExpired(value, settings)) {
+              fnCache.delete(key);
+            }
+          }
+        }
 
-        if (typeof settings.maxSize === "number") {
-          while (fnCache.size > settings.maxSize) {
-            const oldest = fnCache.keys().next().value;
-            if (oldest !== undefined) fnCache.delete(oldest);
+        if (typeof settings.maxSize === "number" && fnCache.size > settings.maxSize) {
+          for (const key of fnCache.keys()) {
+            fnCache.delete(key);
+            if (fnCache.size <= settings.maxSize) {
+              break;
+            }
           }
         }
 
