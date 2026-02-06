@@ -1,4 +1,5 @@
 import { defaultGetCacheKey, type GetCacheKey } from "./cache-key";
+import { isExpired } from "./is-expired";
 import { type AnyFunction, type Cached, type CacheState, cacheStateKey } from "./types";
 
 export type CacheResult = {
@@ -118,11 +119,4 @@ export function cached<TApi extends object>(api: TApi, opts?: CacheOptions<TApi>
       };
     },
   }) as Cached<TApi>;
-}
-
-function isExpired(result: CacheResult, settings: CacheSettings): boolean {
-  if (typeof settings.ttl !== "number") {
-    return false;
-  }
-  return Date.now() > result.cachedAt + settings.ttl;
 }
