@@ -9,7 +9,6 @@ export {
   type CacheResult,
   type CacheSettings,
   cached,
-  type Milliseconds,
 } from "./cached";
 export { getCacheState } from "./get-cache-state";
 export { invalidate } from "./invalidate";

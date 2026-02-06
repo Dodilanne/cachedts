@@ -101,8 +101,10 @@ export function cached<TApi extends object>(api: TApi, opts?: CacheOptions<TApi>
           return cacheRes.value;
         }
 
-        // Reorder the cache to keep the least recently used items at the front
-        fnCache.delete(cacheKey);
+        if (status !== "miss") {
+          fnCache.delete(cacheKey);
+        }
+
         fnCache.set(cacheKey, cacheRes);
 
         if (typeof settings.maxSize === "number") {
