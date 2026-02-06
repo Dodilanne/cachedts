@@ -229,6 +229,104 @@ test("caching with ttl override", async () => {
   })();
 });
 
+test("maxSize evicts oldest entry when exceeded", async () => {
+  const api = {
+    getValue: vi.fn((id: number) => `value-${id}`),
+  };
+  const cachedApi = cached(api, { settings: { maxSize: 2 } });
+  const state = cachedApi[cacheStateKey];
+
+  cachedApi.getValue(1);
+  cachedApi.getValue(2);
+  cachedApi.getValue(3);
+
+  const fnCache = state.cache.get(state.origApi.getValue);
+  expect(fnCache?.size).toBe(2);
+  expect(fnCache?.has("1")).toBe(false);
+  expect(fnCache?.has("2")).toBe(true);
+  expect(fnCache?.has("3")).toBe(true);
+
+  expect(api.getValue).toHaveBeenCalledTimes(3);
+  cachedApi.getValue(2);
+  expect(api.getValue).toHaveBeenCalledTimes(3);
+  cachedApi.getValue(1);
+  expect(api.getValue).toHaveBeenCalledTimes(4);
+});
+
+test("maxSize refreshes LRU position on cache hit", async () => {
+  const api = {
+    getValue: vi.fn((id: number) => `value-${id}`),
+  };
+  const cachedApi = cached(api, { settings: { maxSize: 2 } });
+  const state = cachedApi[cacheStateKey];
+
+  cachedApi.getValue(1);
+  cachedApi.getValue(2);
+  cachedApi.getValue(1);
+  cachedApi.getValue(3);
+
+  const fnCache = state.cache.get(state.origApi.getValue);
+  expect(fnCache?.size).toBe(2);
+  expect(fnCache?.has("1")).toBe(true);
+  expect(fnCache?.has("2")).toBe(false);
+  expect(fnCache?.has("3")).toBe(true);
+});
+
+test("maxSize works with per-function overrides", async () => {
+  const api = {
+    a: vi.fn((id: number) => `a-${id}`),
+    b: vi.fn((id: number) => `b-${id}`),
+  };
+  const cachedApi = cached(api, {
+    settings: { maxSize: 3 },
+    overrides: { a: { maxSize: 1 } },
+  });
+  const state = cachedApi[cacheStateKey];
+
+  cachedApi.a(1);
+  cachedApi.a(2);
+  const aCache = state.cache.get(state.origApi.a);
+  expect(aCache?.size).toBe(1);
+  expect(aCache?.has("1")).toBe(false);
+  expect(aCache?.has("2")).toBe(true);
+
+  cachedApi.b(1);
+  cachedApi.b(2);
+  cachedApi.b(3);
+  const bCache = state.cache.get(state.origApi.b);
+  expect(bCache?.size).toBe(3);
+  expect(bCache?.has("1")).toBe(true);
+  expect(bCache?.has("2")).toBe(true);
+  expect(bCache?.has("3")).toBe(true);
+});
+
+test("maxSize combined with ttl", async () => {
+  vi.useFakeTimers();
+  const api = {
+    getValue: vi.fn((id: number) => `value-${id}`),
+  };
+  const ttl = 1000;
+  const cachedApi = cached(api, { settings: { maxSize: 2, ttl } });
+  const state = cachedApi[cacheStateKey];
+
+  cachedApi.getValue(1);
+  cachedApi.getValue(2);
+
+  vi.advanceTimersByTime(ttl + 1);
+
+  cachedApi.getValue(1);
+  cachedApi.getValue(3);
+
+  const fnCache = state.cache.get(state.origApi.getValue);
+  expect(fnCache?.size).toBe(2);
+  expect(fnCache?.has("1")).toBe(true);
+  expect(fnCache?.has("2")).toBe(false);
+  expect(fnCache?.has("3")).toBe(true);
+  expect(api.getValue).toHaveBeenCalledTimes(4);
+
+  vi.useRealTimers();
+});
+
 test("caching with per-function getCacheKey override", async () => {
   const cachedApi = cached(
     {
