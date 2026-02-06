@@ -15,6 +15,8 @@ export type CacheSettings = {
   ttl?: number;
   /** Maximum number of items to keep in the cache per function */
   maxSize?: number;
+  /** When enabled, accessing a function's cache will sweep its expired entries */
+  pruneOnAccess?: boolean;
 };
 
 export type CacheOptions<TApi extends object> = {
