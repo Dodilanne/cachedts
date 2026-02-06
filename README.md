@@ -63,7 +63,7 @@ const cachedApi = cached(apiObject, {
 |---------------|---------------------------------------------|---------------------------------------------------|
 | `cache`       | `Map`                                       | Provide a shared cache instance                   |
 | `debug`       | `boolean`                                   | Enable logging for cache hits/misses              |
-| `settings`    | `{ enabled?: boolean; ttl?: number; maxSize?: number; pruneOnMiss?: boolean }` | Global cache settings           |
+| `settings`    | `{ enabled?: boolean; ttl?: number; maxSize?: number }` | Global cache settings                    |
 | `overrides`   | `Partial<Record<keyof TApi, CacheSettings>>`| Per-method cache control                          |
 | `getCacheKey` | `(methodName, args) => string \| symbol`    | Custom key generator for cache entries            |
 
@@ -114,11 +114,9 @@ cachedApi.greet("Eve");   // cached, "Alice" evicted (least recently used)
 
 ## Pruning Expired Entries
 
-Expired entries are lazily evicted when their key is accessed again. For proactive cleanup, use `prune()` to sweep all expired entries at once, or enable `pruneOnMiss` to sweep a function's cache on every cache miss.
+When `ttl` is set, expired entries are automatically pruned from a function's cache on every cache miss. This ensures expired entries don't accumulate and, when combined with `maxSize`, prevents LRU eviction from evicting valid entries over expired ones. Cache hits do not trigger pruning.
 
-When both `ttl` and `maxSize` are set, pruning on miss is **forced automatically**. Without it, LRU eviction may evict valid entries while expired ones still occupy slots.
-
-### Manual pruning
+For bulk cleanup across all functions, use `prune()`:
 
 ```ts
 import { cached, prune } from "cachedts";
@@ -129,18 +127,7 @@ const cachedApi = cached(api, { settings: { ttl: 5000 } });
 prune(cachedApi);
 ```
 
-### Automatic pruning on miss
-
-```ts
-const cachedApi = cached(api, {
-  settings: { ttl: 5000, pruneOnMiss: true },
-});
-
-// Only cache misses trigger a sweep of expired entries
-cachedApi.getData("key");
-```
-
-`pruneOnMiss` only sweeps the cache of the function being called, not all functions. Both options respect per-function TTL overrides.
+Pruning only sweeps the cache of the function being called, not all functions. Both automatic and manual pruning respect per-function TTL overrides.
 
 ---
 

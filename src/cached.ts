@@ -15,9 +15,6 @@ export type CacheSettings = {
   ttl?: number;
   /** Maximum number of items to keep in the cache per function */
   maxSize?: number;
-  /** When enabled, a cache miss will sweep expired entries from that function's cache.
-   * Forced to true when both `ttl` and `maxSize` are set. */
-  pruneOnMiss?: boolean;
 };
 
 export type CacheOptions<TApi extends object> = {
@@ -107,16 +104,15 @@ export function cached<TApi extends object>(api: TApi, opts?: CacheOptions<TApi>
           fnCache.set(cacheKey, cacheRes);
         }
 
-        // Prune expired entries before LRU eviction to avoid evicting valid entries over expired ones.
-        // Forced when both ttl and maxSize are set (required for correctness).
-        const shouldPrune =
-          status !== "hit" &&
-          typeof settings.ttl === "number" &&
-          (settings.pruneOnMiss || typeof settings.maxSize === "number");
-        if (shouldPrune) {
+        // Prune expired entries on miss to avoid evicting valid entries over expired ones
+        if (status !== "hit" && typeof settings.ttl === "number") {
           for (const [key, value] of fnCache.entries()) {
             if (isExpired(value, settings)) {
               fnCache.delete(key);
+            } else if (typeof settings.maxSize !== "number") {
+              // Without maxSize, map order matches expiration order (insertion order),
+              // so we can break early at the first non-expired entry
+              break;
             }
           }
         }

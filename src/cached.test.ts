@@ -351,20 +351,23 @@ test("caching with per-function getCacheKey override", async () => {
   expect(bCache?.has("1-the-title")).toBe(true);
 });
 
-test("pruneOnMiss sweeps expired entries on cache miss", () => {
+test("cache miss sweeps expired entries from that function's cache", () => {
   vi.useFakeTimers();
   const api = {
     a: vi.fn((id: number) => `a-${id}`),
+    b: vi.fn((id: number) => `b-${id}`),
   };
   const ttl = 1000;
-  const cachedApi = cached(api, { settings: { ttl, pruneOnMiss: true } });
+  const cachedApi = cached(api, { settings: { ttl } });
   const state = cachedApi[cacheStateKey];
 
   cachedApi.a(1);
   cachedApi.a(2);
+  cachedApi.b(1);
 
   vi.advanceTimersByTime(ttl + 1);
 
+  // a(3) is a miss: prunes expired a(1) and a(2), but not b(1)
   cachedApi.a(3);
 
   const aCache = state.cache.get(state.origApi.a);
@@ -372,58 +375,19 @@ test("pruneOnMiss sweeps expired entries on cache miss", () => {
   expect(aCache?.has("2")).toBe(false);
   expect(aCache?.has("3")).toBe(true);
 
-  vi.useRealTimers();
-});
-
-test("pruneOnMiss does not sweep other functions' caches", () => {
-  vi.useFakeTimers();
-  const api = {
-    a: vi.fn((id: number) => `a-${id}`),
-    b: vi.fn((id: number) => `b-${id}`),
-  };
-  const ttl = 1000;
-  const cachedApi = cached(api, { settings: { ttl, pruneOnMiss: true } });
-  const state = cachedApi[cacheStateKey];
-
-  cachedApi.a(1);
-  cachedApi.b(1);
-
-  vi.advanceTimersByTime(ttl + 1);
-
-  cachedApi.a(2);
-
-  const aCache = state.cache.get(state.origApi.a);
-  expect(aCache?.has("1")).toBe(false);
-  expect(aCache?.has("2")).toBe(true);
-
   const bCache = state.cache.get(state.origApi.b);
   expect(bCache?.has("1")).toBe(true);
 
   vi.useRealTimers();
 });
 
-test("pruneOnMiss is a no-op when no TTL is set", () => {
-  const api = {
-    a: vi.fn((id: number) => `a-${id}`),
-  };
-  const cachedApi = cached(api, { settings: { pruneOnMiss: true } });
-  const state = cachedApi[cacheStateKey];
-
-  cachedApi.a(1);
-  cachedApi.a(2);
-  cachedApi.a(3);
-
-  const aCache = state.cache.get(state.origApi.a);
-  expect(aCache?.size).toBe(3);
-});
-
-test("pruneOnMiss does not sweep on cache hit", () => {
+test("cache hit does not sweep expired entries", () => {
   vi.useFakeTimers();
   const api = {
     a: vi.fn((id: number) => `a-${id}`),
   };
   const ttl = 1000;
-  const cachedApi = cached(api, { settings: { ttl, pruneOnMiss: true } });
+  const cachedApi = cached(api, { settings: { ttl } });
   const state = cachedApi[cacheStateKey];
 
   // t=0: cache a(1)
@@ -444,13 +408,12 @@ test("pruneOnMiss does not sweep on cache hit", () => {
   vi.useRealTimers();
 });
 
-test("pruning is forced on miss when both ttl and maxSize are set", () => {
+test("pruning on miss prevents LRU from evicting valid entries over expired ones", () => {
   vi.useFakeTimers();
   const api = {
     a: vi.fn((id: number) => `a-${id}`),
   };
   const ttl = 1000;
-  // pruneOnMiss not explicitly set, but forced by ttl + maxSize
   const cachedApi = cached(api, { settings: { ttl, maxSize: 2 } });
   const state = cachedApi[cacheStateKey];
 
@@ -465,8 +428,8 @@ test("pruning is forced on miss when both ttl and maxSize are set", () => {
   // t=1001: a(1) is expired (cachedAt=0), a(2) is not (cachedAt=500)
   vi.advanceTimersByTime(2);
 
-  // a(3) is a miss: pruning kicks in, a(1) pruned (expired), a(2) survives
-  // Without forced pruning, LRU would evict a(2) and keep the expired a(1)
+  // a(3) is a miss: pruning removes expired a(1), a(2) survives
+  // Without pruning, LRU would evict a(2) (least recently used) and keep the expired a(1)
   cachedApi.a(3);
 
   const aCache = state.cache.get(state.origApi.a);
