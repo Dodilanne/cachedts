@@ -15,8 +15,9 @@ export type CacheSettings = {
   ttl?: number;
   /** Maximum number of items to keep in the cache per function */
   maxSize?: number;
-  /** When enabled, accessing a function's cache will sweep its expired entries */
-  pruneOnAccess?: boolean;
+  /** When enabled, a cache miss will sweep expired entries from that function's cache.
+   * Forced to true when both `ttl` and `maxSize` are set. */
+  pruneOnMiss?: boolean;
 };
 
 export type CacheOptions<TApi extends object> = {
@@ -106,9 +107,13 @@ export function cached<TApi extends object>(api: TApi, opts?: CacheOptions<TApi>
           fnCache.set(cacheKey, cacheRes);
         }
 
-        // We prune before LRU eviction to give precedence to old non-expired entries over expired ones
-        // Can be skipped when no TTL is set (items never expire)
-        if (settings.pruneOnAccess && typeof settings.ttl === "number") {
+        // Prune expired entries before LRU eviction to avoid evicting valid entries over expired ones.
+        // Forced when both ttl and maxSize are set (required for correctness).
+        const shouldPrune =
+          status !== "hit" &&
+          typeof settings.ttl === "number" &&
+          (settings.pruneOnMiss || typeof settings.maxSize === "number");
+        if (shouldPrune) {
           for (const [key, value] of fnCache.entries()) {
             if (isExpired(value, settings)) {
               fnCache.delete(key);
