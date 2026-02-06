@@ -18,7 +18,11 @@
     "caching",
     "cache",
     "proxy",
-    "simple"
+    "simple",
+    "lru",
+    "eviction",
+    "pruning",
+    "prune"
   ],
   "license": "MIT",
   "sideEffects": false,
@@ -66,6 +70,26 @@
       "import": {
         "types": "./invalidate.d.mts",
         "import": "./invalidate.mjs"
+      }
+    },
+    "./prune": {
+      "require": {
+        "types": "./prune.d.ts",
+        "require": "./prune.js"
+      },
+      "import": {
+        "types": "./prune.d.mts",
+        "import": "./prune.mjs"
+      }
+    },
+    "./is-expired": {
+      "require": {
+        "types": "./is-expired.d.ts",
+        "require": "./is-expired.js"
+      },
+      "import": {
+        "types": "./is-expired.d.mts",
+        "import": "./is-expired.mjs"
       }
     },
     "./cache-key": {
