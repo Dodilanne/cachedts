@@ -121,16 +121,16 @@ export function cached<TApi extends object>(api: TApi, opts?: CacheOptions<TApi>
         }
 
         if (typeof settings.maxSize === "number" && fnCache.size > settings.maxSize) {
-          // Prune expired entries on miss to avoid evicting valid entries over expired ones
-          if (status === "miss") {
-            for (const [key, value] of fnCache.entries()) {
-              if (isExpired(value, settings)) {
-                fnCache.delete(key);
-              }
+          for (const [key, value] of fnCache.entries()) {
+            if (typeof settings.ttl !== "number" || isExpired(value, settings)) {
+              fnCache.delete(key);
+            }
+            if (fnCache.size <= settings.maxSize) {
+              break;
             }
           }
 
-          while (fnCache.size > settings.maxSize) {
+          if (fnCache.size > settings.maxSize) {
             const first = fnCache.keys().next().value;
             if (first) {
               fnCache.delete(first);
