@@ -110,6 +110,10 @@ cachedApi.greet("Eve");   // cached, "Alice" evicted (least recently used)
 
 `maxSize` can be combined with `ttl` and set per-method via `overrides`.
 
+> **Note:** Activating both `ttl` and `maxSize` is less performant than using only one.
+When both are active, the cache prunes the **entire** map on every miss since it can't rely on map order to break early like it can with `ttl` alone.
+Prefer setting only `maxSize` or `ttl` depending on your use case.
+
 ---
 
 ## Pruning Expired Entries
