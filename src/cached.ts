@@ -122,11 +122,11 @@ export function cached<TApi extends object>(api: TApi, opts?: CacheOptions<TApi>
 
         if (typeof settings.maxSize === "number" && fnCache.size > settings.maxSize) {
           for (const [key, value] of fnCache.entries()) {
-            if (typeof settings.ttl !== "number" || isExpired(value, settings)) {
-              fnCache.delete(key);
-            }
             if (fnCache.size <= settings.maxSize) {
               break;
+            }
+            if (typeof settings.ttl !== "number" || isExpired(value, settings)) {
+              fnCache.delete(key);
             }
           }
 
