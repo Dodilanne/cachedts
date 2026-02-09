@@ -104,12 +104,15 @@ export function cached<TApi extends object>(api: TApi, opts?: CacheOptions<TApi>
           fnCache.set(cacheKey, cacheRes);
         }
 
-        // Prune expired entries on miss to avoid evicting valid entries over expired ones
-        if (status !== "hit" && typeof settings.ttl === "number") {
+        if (
+          status !== "hit" &&
+          typeof settings.ttl === "number" &&
+          typeof settings.maxSize !== "number"
+        ) {
           for (const [key, value] of fnCache.entries()) {
             if (isExpired(value, settings)) {
               fnCache.delete(key);
-            } else if (typeof settings.maxSize !== "number") {
+            } else {
               // Without maxSize, map order matches expiration order (insertion order),
               // so we can break early at the first non-expired entry
               break;
@@ -118,10 +121,19 @@ export function cached<TApi extends object>(api: TApi, opts?: CacheOptions<TApi>
         }
 
         if (typeof settings.maxSize === "number" && fnCache.size > settings.maxSize) {
-          for (const key of fnCache.keys()) {
-            fnCache.delete(key);
-            if (fnCache.size <= settings.maxSize) {
-              break;
+          // Prune expired entries on miss to avoid evicting valid entries over expired ones
+          if (status === "miss") {
+            for (const [key, value] of fnCache.entries()) {
+              if (isExpired(value, settings)) {
+                fnCache.delete(key);
+              }
+            }
+          }
+
+          while (fnCache.size > settings.maxSize) {
+            const first = fnCache.keys().next().value;
+            if (first) {
+              fnCache.delete(first);
             }
           }
         }
